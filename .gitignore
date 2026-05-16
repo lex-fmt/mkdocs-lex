@@ -135,3 +135,11 @@ pytest.log
 */messages.mo
 **/messages.mo
 docs/site
+
+# MkDocs
+site/
+*/site/
+
+# mkdocs-lex plugin
+.mkdocs_lex_cache/
+*/.mkdocs_lex_cache/

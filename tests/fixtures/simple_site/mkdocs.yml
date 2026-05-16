@@ -1,0 +1,8 @@
+site_name: Integration Test Site
+theme:
+  name: mkdocs
+
+plugins:
+  - search
+  - lex:
+      download_if_missing: true
