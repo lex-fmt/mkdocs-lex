@@ -1,0 +1,98 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_pyproject:
+        description: "Use version from pyproject.toml"
+        required: true
+        type: boolean
+      release_version:
+        description: "Or tag name for the release"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-poetry # Reference your composite action
+        with:
+          python-version: "3.11" # Specify the Python version you want to use
+          cache-key-prefix: "test-env"
+
+      - name: Determine version
+        id: determine_version
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.from_pyproject }}" = true ]; then
+            release_version=$(poetry version -s)
+          else
+            release_version=${{ github.event.inputs.release_version }}
+          fi
+          echo "release_version=$release_version" >> $GITHUB_OUTPUT
+
+      - name: Update version
+        shell: bash
+        run: |
+          poetry version ${{ steps.determine_version.outputs.release_version }}
+
+      - name: Check if version needs to be committed
+        id: check_version
+        shell: bash
+        run: |
+          current_version=$(poetry version -s)
+          release_version=${{ steps.determine_version.outputs.release_version }}
+          if [ "$current_version" != "$release_version" ]; then
+            poetry version ${{ steps.determine_version.outputs.release_version }} # Update version here directly
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build i18n files
+        shell: bash
+        run: |
+          pybabel compile -d sprinkles/src/locale
+
+      - name: Commit version and i18n changes
+        shell: bash
+        if: steps.check_version.outputs.version_changed == 'true'
+        env:
+          version_changed: ${{ steps.check_version.outputs.version_changed }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{github.repository}}
+          git add pyproject.toml
+          git add sprinkles/src/locale
+          git commit -m "chore: Update version to ${{ steps.determine_version.outputs.release_version }} and update i18n files"
+          git push origin HEAD:${{ github.ref }}
+
+      - name: Build
+        shell: bash
+        run: |
+          poetry build
+
+      - name: Publish
+        shell: bash
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          poetry run twine upload --repository pypi dist/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*
+          tag_name: ${{ steps.determine_version.outputs.release_version }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true
+          prerelease: true

@@ -1,0 +1,38 @@
+name: Run Tests
+
+on: [push, pull_request]
+
+jobs:
+  python-unittests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-poetry
+        with:
+          python-version: "3.11"
+          cache-key-prefix: "test-env"
+
+      - name: Extract repo name
+        id: extract_repo_name
+        run: echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)" >> $GITHUB_ENV
+
+      - name: Run tests
+        env:
+          REPO_NAME: ${{ env.REPO_NAME }}
+        run: |
+          poetry run pytest -vvv --cov-branch --cov-report=xml --cov=${{ env.REPO_NAME }}
+          ls -lah
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
