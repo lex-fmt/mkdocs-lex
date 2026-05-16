@@ -1,0 +1,12 @@
+[project]
+name = "mkdocs-lex-plugin"
+version = "0.1.0"
+description = "A native Lex parser and integration for MkDocs."
+dependencies = [
+    "mkdocs>=1.0",
+    # You don't necessarily need to list 'lexd' if it's a Rust binary, 
+    # but you should document that it's required in the README.
+]
+
+[project.entry-points."mkdocs.plugins"]
+lex = "mkdocs_lex.plugin:LexPlugin"
