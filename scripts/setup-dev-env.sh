@@ -93,4 +93,43 @@ fi
 # (See e.g. lex-fmt/lexed for an Xvfb start, lex-fmt/nvim for pinned-bin
 # fetches.)
 
+# Pre-install the `lexd` CLI into the venv bin dir.
+#
+# The integration test (tests/test_integration.py) drives `mkdocs build`
+# against a fixture that has `download_if_missing: true` set on the
+# plugin. That code path hits api.github.com anonymously from urllib —
+# and from the cloud sandbox's shared egress IP, GitHub aggressively
+# rate-limits anonymous calls, returning a flaky HTTP 403 long before the
+# documented 60-req/hr quota. The mkdocs build then aborts and pytest
+# fails.
+#
+# Fix: drop a `lexd` binary into .venv/bin/ during setup so it's on PATH
+# when the venv is activated; the plugin's `shutil.which('lexd')` check
+# short-circuits before any network call. We fetch via `gh release
+# download`, which uses GH_TOKEN (scoped to lex-fmt/* in cloud sessions)
+# and so isn't subject to the anonymous rate-limit.
+LEXD_BIN="${REPO_ROOT}/.venv/bin/lexd"
+if [ -d "${REPO_ROOT}/.venv/bin" ] && [ ! -x "${LEXD_BIN}" ] && command -v gh >/dev/null 2>&1; then
+  arch="$(uname -m)"
+  case "${arch}" in
+    x86_64|amd64)  lexd_target="x86_64-unknown-linux-gnu" ;;
+    aarch64|arm64) lexd_target="aarch64-unknown-linux-gnu" ;;
+    *)             lexd_target="" ;;
+  esac
+  if [ -n "${lexd_target}" ]; then
+    lexd_tmp="$(mktemp -d)"
+    if gh release download --repo lex-fmt/lex \
+         --pattern "lexd-${lexd_target}.tar.gz" \
+         --dir "${lexd_tmp}" --clobber >/dev/null 2>&1 \
+       && tar -xzf "${lexd_tmp}/lexd-${lexd_target}.tar.gz" -C "${lexd_tmp}" \
+       && mv "${lexd_tmp}/lexd-${lexd_target}/lexd" "${LEXD_BIN}" \
+       && chmod +x "${LEXD_BIN}"; then
+      :
+    else
+      echo "warning: could not install lexd via gh — integration tests may flake on the runtime download path" >&2
+    fi
+    rm -rf "${lexd_tmp}"
+  fi
+fi
+
 exit 0
