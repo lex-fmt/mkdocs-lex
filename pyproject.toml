@@ -1,15 +1,41 @@
 [project]
 name = "mkdocs-lex-plugin"
 version = "0.1.0"
-description = "A native Lex parser and integration for MkDocs."
+description = "MkDocs plugin that renders .lex files natively, with no precompilation step."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Arthur Debert", email = "debert@gmail.com" },
+]
+keywords = ["mkdocs", "mkdocs-plugin", "lex", "documentation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Text Processing :: Markup",
+]
 dependencies = [
     "mkdocs>=1.0",
-    # You don't necessarily need to list 'lexd' if it's a Rust binary, 
-    # but you should document that it's required in the README.
 ]
 
 [project.optional-dependencies]
 dev = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/lex-fmt/mkdocs-lex"
+Repository = "https://github.com/lex-fmt/mkdocs-lex"
+Issues = "https://github.com/lex-fmt/mkdocs-lex/issues"
+"Lex Language" = "https://github.com/lex-fmt/lex"
 
 [project.entry-points."mkdocs.plugins"]
 lex = "mkdocs_lex.plugin:LexPlugin"

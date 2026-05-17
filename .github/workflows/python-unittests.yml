@@ -1,38 +1,50 @@
 name: Run Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   python-unittests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Python environment
-        uses: ./.github/actions/setup-python-poetry
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache-key-prefix: "test-env"
+          cache: pip
+          cache-dependency-path: pyproject.toml
 
-      - name: Extract repo name
-        id: extract_repo_name
-        run: echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)" >> $GITHUB_ENV
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" mkdocs
+
+      - name: Install pinned lexd binary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          LEXD_VERSION="$(jq -r '.lexd' shared/lex-deps.json)"
+          LEXD_REPO="$(jq -r '."lexd-repo"' shared/lex-deps.json)"
+          LEXD_TARGET="x86_64-unknown-linux-gnu"
+          LEXD_TMP="$(mktemp -d)"
+          gh release download "${LEXD_VERSION}" \
+            --repo "${LEXD_REPO}" \
+            --pattern "lexd-${LEXD_TARGET}.tar.gz" \
+            --dir "${LEXD_TMP}"
+          tar -xzf "${LEXD_TMP}/lexd-${LEXD_TARGET}.tar.gz" -C "${LEXD_TMP}"
+          mkdir -p "${HOME}/.local/bin"
+          mv "$(find "${LEXD_TMP}" -type f -name lexd | head -n 1)" "${HOME}/.local/bin/lexd"
+          chmod +x "${HOME}/.local/bin/lexd"
+          echo "${HOME}/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Verify lexd
+        run: lexd --version
 
       - name: Run tests
-        env:
-          REPO_NAME: ${{ env.REPO_NAME }}
-        run: |
-          poetry run pytest -vvv --cov-branch --cov-report=xml --cov=${{ env.REPO_NAME }}
-          ls -lah
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+        run: pytest -vv
