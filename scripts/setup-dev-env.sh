@@ -124,6 +124,53 @@ if { [ -f pyproject.toml ] || [ -f requirements.txt ] || [ -f setup.py ]; } \
       .venv/bin/pip install -e . --quiet \
         || echo "warning: editable install failed — tests will not run" >&2
     fi
+
+    # Expose venv-installed CLIs on the agent's bare PATH.
+    #
+    # The cloud Bash tool runs non-interactive shells whose PATH is
+    # fixed at session start and does NOT include
+    # ${REPO_ROOT}/.venv/bin. ~/.bashrc returns early for non-
+    # interactive shells (`[ -z "$PS1" ] && return`), so PATH fixes
+    # there are unreachable. The agent's `subprocess.run(['mkdocs',
+    # …])` (or any test that shells out to a venv CLI) resolves the
+    # command against the agent's PATH and gets FileNotFoundError.
+    #
+    # Symlink every executable in .venv/bin (except the
+    # python/pip/activate family — those would shadow system commands
+    # or break venv internals) into ${HOME}/.local/bin/, which IS on
+    # the agent's PATH (it's where uv / pipx / similar Python tooling
+    # already drops entry points). Idempotent — `ln -sf` overwrites
+    # stale symlinks pointing into a previous session's path.
+    #
+    # Consumers that install ADDITIONAL CLIs from project-local extras
+    # (pinned-binary downloads from GitHub releases, etc) should drop
+    # them directly into ${HOME}/.local/bin rather than .venv/bin, so
+    # they're discoverable on the same PATH without needing a second
+    # symlink pass below the marker.
+    if [ -d .venv/bin ]; then
+      # Create ~/.local/bin if missing — env/setup.sh doesn't and Ubuntu
+      # cloud images don't ship it by default in fresh users. The
+      # directory is on the default PATH for any login that picks up
+      # ~/.profile, but we still need it to exist before we ln into it.
+      mkdir -p "${HOME}/.local/bin"
+      for _venv_bin in .venv/bin/*; do
+        # Require both regular file (after symlink resolution) AND
+        # executable bit. `-x` alone matches directories, which would
+        # produce a useless dangling symlink if the glob ever did.
+        [ -f "${_venv_bin}" ] && [ -x "${_venv_bin}" ] || continue
+        # Parameter expansion avoids forking basename per iteration.
+        _name="${_venv_bin##*/}"
+        case "${_name}" in
+          python|python[0-9]*|pip|pip[0-9]*|activate*|easy_install*|wheel|wheel[0-9]*)
+            continue
+            ;;
+        esac
+        # `--` defends against (pathological) filenames starting with -;
+        # `|| true` matches the script's best-effort policy — a single
+        # permission hiccup shouldn't abort the rest of session setup.
+        ln -sf -- "${REPO_ROOT}/.venv/bin/${_name}" "${HOME}/.local/bin/${_name}" || true
+      done
+    fi
   fi
 fi
 
@@ -230,27 +277,29 @@ fi
 #
 # No trailing `exit 0` — bash exits 0 on EOF when `set -euo pipefail`
 # succeeded. Adding one here would make appended extras unreachable.
-# Pre-install the pinned `lexd` CLI into the venv bin dir.
+
+# Pre-install the pinned `lexd` CLI directly into ${HOME}/.local/bin/.
 #
 # The integration test (tests/test_integration.py) drives `mkdocs build`
 # against a fixture that has `download_if_missing: true` set on the
 # plugin. That code path hits api.github.com anonymously from urllib —
 # and from the cloud sandbox's shared egress IP, GitHub aggressively
-# rate-limits anonymous calls, returning a flaky HTTP 403 long before the
-# documented 60-req/hr quota. The mkdocs build then aborts and pytest
-# fails.
+# rate-limits anonymous calls, returning a flaky HTTP 403 long before
+# the documented 60-req/hr quota. The mkdocs build then aborts and
+# pytest fails.
 #
-# Fix: drop the version pinned in shared/lex-deps.json into .venv/bin/
-# during setup so it's on PATH when the venv is activated; the plugin's
+# Fix: drop the version pinned in shared/lex-deps.json into
+# ${HOME}/.local/bin/ so it's on the agent's bare PATH (where the
+# canonical symlinks pyproject CLIs above). The plugin's
 # `shutil.which('lexd')` check short-circuits before any network call.
+#
 # Pattern matches lex-fmt/nvim and lex-fmt/comms: version + repo in
-# shared/lex-deps.json, fetched via `gh release download` which uses
-# GH_TOKEN (scoped to lex-fmt/* in cloud sessions) so it isn't subject
-# to the anonymous rate-limit. To bump the pin: edit shared/lex-deps.json,
-# delete .venv/bin/lexd, re-run this script.
+# shared/lex-deps.json, fetched via `gh release download` (uses GH_TOKEN
+# in cloud sessions, so it isn't subject to the anonymous rate-limit).
+# To bump the pin: edit shared/lex-deps.json, delete
+# ${HOME}/.local/bin/lexd, re-run this script.
 if [ -f shared/lex-deps.json ] \
-   && [ -d "${REPO_ROOT}/.venv/bin" ] \
-   && [ ! -x "${REPO_ROOT}/.venv/bin/lexd" ] \
+   && [ ! -x "${HOME}/.local/bin/lexd" ] \
    && command -v gh >/dev/null 2>&1 \
    && command -v jq >/dev/null 2>&1; then
   LEXD_VERSION="$(jq -r '.lexd' shared/lex-deps.json)"
@@ -263,14 +312,15 @@ if [ -f shared/lex-deps.json ] \
   if [ -n "${LEXD_TARGET}" ] \
      && [ -n "${LEXD_VERSION}" ] && [ "${LEXD_VERSION}" != "null" ] \
      && [ -n "${LEXD_REPO}" ]    && [ "${LEXD_REPO}" != "null" ]; then
+    mkdir -p "${HOME}/.local/bin"
     LEXD_TMP="$(mktemp -d)"
     if gh release download "${LEXD_VERSION}" \
          --repo "${LEXD_REPO}" \
          --pattern "lexd-${LEXD_TARGET}.tar.gz" \
          --dir "${LEXD_TMP}" --clobber >/dev/null 2>&1 \
        && tar -xzf "${LEXD_TMP}/lexd-${LEXD_TARGET}.tar.gz" -C "${LEXD_TMP}" \
-       && mv "$(find "${LEXD_TMP}" -type f -name lexd | head -n 1)" "${REPO_ROOT}/.venv/bin/lexd" \
-       && chmod +x "${REPO_ROOT}/.venv/bin/lexd"; then
+       && mv "$(find "${LEXD_TMP}" -type f -name lexd | head -n 1)" "${HOME}/.local/bin/lexd" \
+       && chmod +x "${HOME}/.local/bin/lexd"; then
       :
     else
       echo "warning: could not install pinned lexd (${LEXD_REPO}@${LEXD_VERSION}) — integration tests may flake on the runtime download path" >&2
