@@ -93,6 +93,31 @@ fi
 # (See e.g. lex-fmt/lexed for an Xvfb start, lex-fmt/nvim for pinned-bin
 # fetches.)
 
+# Self-heal a partial .venv from a stale session env-snapshot.
+#
+# The canonical Python step above only runs `pip install -e .[dev]` when
+# .venv is absent. In the cloud, the session env-snapshot can cache a
+# .venv directory that contains only pip + setuptools (created by a
+# previous run where the editable install errored under `2>/dev/null`,
+# or was interrupted mid-snapshot). On the next session start the `[ ! -d
+# .venv ]` guard sees the directory and skips reinstall, leaving mkdocs
+# and pytest missing. Symptom: `pytest tests/` fails with
+# `ModuleNotFoundError: mkdocs` (or `FileNotFoundError: 'mkdocs'` from
+# the integration test's `subprocess.run(['mkdocs', 'build'])`), because
+# the project package itself never got installed.
+#
+# Fix: if .venv exists but `mkdocs-lex-plugin` isn't installed inside it,
+# rerun the editable install. Loud (no `2>/dev/null`) so future install
+# failures surface instead of being papered over.
+if [ -f pyproject.toml ] && [ -x "${REPO_ROOT}/.venv/bin/pip" ]; then
+  if ! "${REPO_ROOT}/.venv/bin/pip" show mkdocs-lex-plugin >/dev/null 2>&1; then
+    "${REPO_ROOT}/.venv/bin/pip" install --upgrade pip --quiet || true
+    "${REPO_ROOT}/.venv/bin/pip" install -e '.[dev]' --quiet \
+      || "${REPO_ROOT}/.venv/bin/pip" install -e . --quiet \
+      || echo "warning: editable install failed — tests will not run" >&2
+  fi
+fi
+
 # Pre-install the pinned `lexd` CLI into the venv bin dir.
 #
 # The integration test (tests/test_integration.py) drives `mkdocs build`
