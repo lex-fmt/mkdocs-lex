@@ -13,3 +13,10 @@ dev = ["pytest"]
 
 [project.entry-points."mkdocs.plugins"]
 lex = "mkdocs_lex.plugin:LexPlugin"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["mkdocs_lex"]
