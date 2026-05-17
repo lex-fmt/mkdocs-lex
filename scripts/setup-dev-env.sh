@@ -122,7 +122,7 @@ if [ -d "${REPO_ROOT}/.venv/bin" ] && [ ! -x "${LEXD_BIN}" ] && command -v gh >/
          --pattern "lexd-${lexd_target}.tar.gz" \
          --dir "${lexd_tmp}" --clobber >/dev/null 2>&1 \
        && tar -xzf "${lexd_tmp}/lexd-${lexd_target}.tar.gz" -C "${lexd_tmp}" \
-       && mv "${lexd_tmp}/lexd-${lexd_target}/lexd" "${LEXD_BIN}" \
+       && mv "$(find "${lexd_tmp}" -type f -name lexd | head -n 1)" "${LEXD_BIN}" \
        && chmod +x "${LEXD_BIN}"; then
       :
     else
