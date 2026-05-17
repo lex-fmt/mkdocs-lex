@@ -110,7 +110,13 @@ fi
 # rerun the editable install. Loud (no `2>/dev/null`) so future install
 # failures surface instead of being papered over.
 if [ -f pyproject.toml ] && [ -x "${REPO_ROOT}/.venv/bin/pip" ]; then
-  if ! "${REPO_ROOT}/.venv/bin/pip" show mkdocs-lex-plugin >/dev/null 2>&1; then
+  # Separate `pip show` calls because the multi-arg form returns 0 if ANY
+  # package exists — so `pip show mkdocs-lex-plugin pytest` would mask a
+  # partial install where the main package landed but `[dev]` extras did
+  # not. Two single-arg calls give the strict "both installed" semantics
+  # the self-heal needs.
+  if ! "${REPO_ROOT}/.venv/bin/pip" show mkdocs-lex-plugin >/dev/null 2>&1 \
+     || ! "${REPO_ROOT}/.venv/bin/pip" show pytest >/dev/null 2>&1; then
     "${REPO_ROOT}/.venv/bin/pip" install --upgrade pip --quiet || true
     "${REPO_ROOT}/.venv/bin/pip" install -e '.[dev]' --quiet \
       || "${REPO_ROOT}/.venv/bin/pip" install -e . --quiet \
