@@ -48,7 +48,9 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: .mkdocs_lex_cache
-          key: mkdocs-lex-${{ runner.os }}
+          key: mkdocs-lex-${{ runner.os }}-${{ hashFiles('docs/requirements.txt') }}
+          restore-keys: |
+            mkdocs-lex-${{ runner.os }}-
 
       - run: pip install -r docs/requirements.txt
       - run: mkdocs build --strict
