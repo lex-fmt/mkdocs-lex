@@ -15,7 +15,7 @@ from mkdocs.exceptions import PluginError
 
 class LexPlugin(BasePlugin):
     config_scheme = (
-        ('download_if_missing', config_options.Type(bool, default=False)),
+        ('download_if_missing', config_options.Type(bool, default=True)),
     )
 
     def __init__(self):
@@ -28,10 +28,11 @@ class LexPlugin(BasePlugin):
             return config
 
         # 2. Check configuration
-        if not self.config.get('download_if_missing', False):
+        if not self.config.get('download_if_missing', True):
             raise PluginError(
-                "[mkdocs-lex] The 'lexd' binary was not found in PATH. "
-                "Please install it or set 'download_if_missing: true' in your mkdocs.yml plugin config."
+                "[mkdocs-lex] The 'lexd' binary was not found in PATH and "
+                "'download_if_missing' is disabled. Either install lexd or "
+                "remove 'download_if_missing: false' from your mkdocs.yml."
             )
 
         # 3. Setup local cache directory

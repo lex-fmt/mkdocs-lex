@@ -5,7 +5,7 @@ A native Lex parser and integration for MkDocs.
 This plugin allows MkDocs to seamlessly parse and render `.lex` files as part of your documentation site. It acts as a transparent adapter—MkDocs treats your `.lex` files as native Markdown pages, meaning all of your favorite MkDocs features, themes, and plugins will continue to work perfectly!
 
 > [!NOTE]
-> This plugin requires the `lexd` CLI tool to be installed and available in your `PATH`. 
+> This plugin needs the `lexd` CLI to convert your `.lex` files. By default it will download the right binary for your platform from the latest `lex-fmt/lex` release on first run and cache it under `.mkdocs_lex_cache/` — no manual install needed. If you already have `lexd` on your `PATH`, it'll use that instead.
 
 ## Installation
 
@@ -29,16 +29,16 @@ plugins:
 
 ### Configuration Options
 
-You can configure the plugin to automatically download the `lexd` CLI if it is not found on the host machine. This is extremely useful for CI/CD pipelines (like GitHub Actions) so you don't have to manually install the Rust binary.
+| Option | Default | Description |
+|--------|---------|-------------|
+| `download_if_missing` | `true` | When `lexd` isn't on `PATH`, fetch the latest matching binary from the `lex-fmt/lex` GitHub releases and cache it under `.mkdocs_lex_cache/`. Set to `false` to require a pre-installed `lexd` and error out if it's missing. |
 
 ```yaml
 plugins:
   - search
   - lex:
-      download_if_missing: true
+      download_if_missing: false   # require pre-installed lexd
 ```
-
-If set to `true`, the plugin will query the GitHub API for the latest `lex-fmt/lex` release, automatically detect your operating system and architecture, download the appropriate binary, and cache it locally in a `.mkdocs_lex_cache/` directory.
 
 ### Navigation Configuration
 
