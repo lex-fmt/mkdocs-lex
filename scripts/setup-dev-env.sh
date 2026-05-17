@@ -93,7 +93,7 @@ fi
 # (See e.g. lex-fmt/lexed for an Xvfb start, lex-fmt/nvim for pinned-bin
 # fetches.)
 
-# Pre-install the `lexd` CLI into the venv bin dir.
+# Pre-install the pinned `lexd` CLI into the venv bin dir.
 #
 # The integration test (tests/test_integration.py) drives `mkdocs build`
 # against a fixture that has `download_if_missing: true` set on the
@@ -103,33 +103,41 @@ fi
 # documented 60-req/hr quota. The mkdocs build then aborts and pytest
 # fails.
 #
-# Fix: drop a `lexd` binary into .venv/bin/ during setup so it's on PATH
-# when the venv is activated; the plugin's `shutil.which('lexd')` check
-# short-circuits before any network call. We fetch via `gh release
-# download`, which uses GH_TOKEN (scoped to lex-fmt/* in cloud sessions)
-# and so isn't subject to the anonymous rate-limit.
-LEXD_BIN="${REPO_ROOT}/.venv/bin/lexd"
-if [ -d "${REPO_ROOT}/.venv/bin" ] && [ ! -x "${LEXD_BIN}" ] && command -v gh >/dev/null 2>&1; then
-  arch="$(uname -m)"
-  case "${arch}" in
-    x86_64|amd64)  lexd_target="x86_64-unknown-linux-gnu" ;;
-    aarch64|arm64) lexd_target="aarch64-unknown-linux-gnu" ;;
-    *)             lexd_target="" ;;
+# Fix: drop the version pinned in shared/lex-deps.json into .venv/bin/
+# during setup so it's on PATH when the venv is activated; the plugin's
+# `shutil.which('lexd')` check short-circuits before any network call.
+# Pattern matches lex-fmt/nvim and lex-fmt/comms: version + repo in
+# shared/lex-deps.json, fetched via `gh release download` which uses
+# GH_TOKEN (scoped to lex-fmt/* in cloud sessions) so it isn't subject
+# to the anonymous rate-limit. To bump the pin: edit shared/lex-deps.json,
+# delete .venv/bin/lexd, re-run this script.
+if [ -f shared/lex-deps.json ] \
+   && [ -d "${REPO_ROOT}/.venv/bin" ] \
+   && [ ! -x "${REPO_ROOT}/.venv/bin/lexd" ] \
+   && command -v gh >/dev/null 2>&1 \
+   && command -v jq >/dev/null 2>&1; then
+  LEXD_VERSION="$(jq -r '.lexd' shared/lex-deps.json)"
+  LEXD_REPO="$(jq -r '."lexd-repo"' shared/lex-deps.json)"
+  case "$(uname -m)" in
+    x86_64|amd64)  LEXD_TARGET="x86_64-unknown-linux-gnu" ;;
+    aarch64|arm64) LEXD_TARGET="aarch64-unknown-linux-gnu" ;;
+    *)             LEXD_TARGET="" ;;
   esac
-  if [ -n "${lexd_target}" ]; then
-    lexd_tmp="$(mktemp -d)"
-    if gh release download --repo lex-fmt/lex \
-         --pattern "lexd-${lexd_target}.tar.gz" \
-         --dir "${lexd_tmp}" --clobber >/dev/null 2>&1 \
-       && tar -xzf "${lexd_tmp}/lexd-${lexd_target}.tar.gz" -C "${lexd_tmp}" \
-       && mv "$(find "${lexd_tmp}" -type f -name lexd | head -n 1)" "${LEXD_BIN}" \
-       && chmod +x "${LEXD_BIN}"; then
+  if [ -n "${LEXD_TARGET}" ] \
+     && [ -n "${LEXD_VERSION}" ] && [ "${LEXD_VERSION}" != "null" ] \
+     && [ -n "${LEXD_REPO}" ]    && [ "${LEXD_REPO}" != "null" ]; then
+    LEXD_TMP="$(mktemp -d)"
+    if gh release download "${LEXD_VERSION}" \
+         --repo "${LEXD_REPO}" \
+         --pattern "lexd-${LEXD_TARGET}.tar.gz" \
+         --dir "${LEXD_TMP}" --clobber >/dev/null 2>&1 \
+       && tar -xzf "${LEXD_TMP}/lexd-${LEXD_TARGET}.tar.gz" -C "${LEXD_TMP}" \
+       && mv "$(find "${LEXD_TMP}" -type f -name lexd | head -n 1)" "${REPO_ROOT}/.venv/bin/lexd" \
+       && chmod +x "${REPO_ROOT}/.venv/bin/lexd"; then
       :
     else
-      echo "warning: could not install lexd via gh — integration tests may flake on the runtime download path" >&2
+      echo "warning: could not install pinned lexd (${LEXD_REPO}@${LEXD_VERSION}) — integration tests may flake on the runtime download path" >&2
     fi
-    rm -rf "${lexd_tmp}"
+    rm -rf "${LEXD_TMP}"
   fi
 fi
-
-exit 0
