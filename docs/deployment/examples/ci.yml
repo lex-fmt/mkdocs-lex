@@ -1,0 +1,36 @@
+name: Docs CI
+
+on:
+  pull_request:
+    paths:
+      - docs/**
+      - mkdocs.yml
+      - .github/workflows/docs-ci.yml
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - mkdocs.yml
+      - .github/workflows/docs-ci.yml
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - uses: actions/cache@v4
+        with:
+          path: .mkdocs_lex_cache
+          key: mkdocs-lex-${{ runner.os }}-${{ hashFiles('docs/requirements.txt') }}
+          restore-keys: |
+            mkdocs-lex-${{ runner.os }}-
+
+      - run: pip install -r docs/requirements.txt
+      - run: mkdocs build --strict

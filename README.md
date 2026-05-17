@@ -52,6 +52,16 @@ nav:
   - Getting Started: getting-started.md
 ```
 
+## Deployment
+
+To publish a `mkdocs-lex` site:
+
+- **GitHub Pages via GitHub Actions** — the recommended path. See [`docs/deployment/github-pages.md`](docs/deployment/github-pages.md).
+- **Read the Docs** — choose this when you want versioned docs or PR previews. See [`docs/deployment/read-the-docs.md`](docs/deployment/read-the-docs.md).
+- **CI build verification only** — when you deploy from elsewhere but want CI to fail on broken docs. See [`docs/deployment/ci-verification.md`](docs/deployment/ci-verification.md).
+
+Full overview and trade-offs: [`docs/deployment/`](docs/deployment/index.md).
+
 ## Development Setup
 
 If you want to contribute or test this plugin locally:
