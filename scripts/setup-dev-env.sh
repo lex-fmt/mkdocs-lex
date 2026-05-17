@@ -278,3 +278,32 @@ if [ -f shared/lex-deps.json ] \
     rm -rf "${LEXD_TMP}"
   fi
 fi
+
+# Expose venv CLIs (`mkdocs`, `lexd`) on the agent's bare PATH.
+#
+# The cloud-session Bash tool starts non-interactive shells with a fixed
+# PATH that does NOT include `${REPO_ROOT}/.venv/bin`. The user's
+# `~/.bashrc` returns early for non-interactive shells
+# (`[ -z "$PS1" ] && return`), so we can't fix PATH from shell init.
+#
+# The integration test (tests/test_integration.py) calls
+# `subprocess.run(['mkdocs', 'build'])`, which resolves `mkdocs` via the
+# child's PATH (the agent's PATH, unmodified). The mkdocs-lex plugin
+# loaded by that build then does `shutil.which('lexd')` — also against
+# the same PATH. Without both binaries discoverable on the agent's bare
+# PATH, the test fails with `FileNotFoundError: 'mkdocs'` (or, if only
+# mkdocs is symlinked, the plugin falls through to the
+# download-from-GitHub path and gets HTTP 403 rate-limited from the
+# sandbox's shared egress IP — the same failure the `lexd` pre-install
+# block above guards against in venv-activated runs).
+#
+# Symlink both binaries into `${HOME}/.local/bin`, which is already on
+# the agent's PATH (alongside `pytest`, `gh`, etc). Idempotent — `ln -sf`
+# replaces stale symlinks pointing into a previous session's venv path.
+if [ -d "${REPO_ROOT}/.venv/bin" ] && [ -d "${HOME}/.local/bin" ]; then
+  for _bin in mkdocs lexd; do
+    if [ -x "${REPO_ROOT}/.venv/bin/${_bin}" ]; then
+      ln -sf "${REPO_ROOT}/.venv/bin/${_bin}" "${HOME}/.local/bin/${_bin}"
+    fi
+  done
+fi
