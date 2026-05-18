@@ -1,6 +1,6 @@
 [project]
 name = "mkdocs-lex-plugin"
-version = "0.2.0"
+version = "0.2.1"
 description = "MkDocs plugin that renders .lex files natively, with no precompilation step."
 readme = "README.md"
 requires-python = ">=3.9"
