@@ -35,7 +35,7 @@ mkdocs:
 
 ### `docs/requirements.txt`
 
-```
+```text
 mkdocs>=1.5
 mkdocs-lex-plugin
 mkdocs-material   # or your theme of choice

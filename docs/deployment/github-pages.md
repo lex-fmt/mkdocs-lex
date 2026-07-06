@@ -75,7 +75,7 @@ That's it. Commit the file and push to `main`; the first run will create the `gh
 
 If you're using a custom domain (`docs.example.com`), set it in **Settings → Pages → Custom domain** *and* commit a `CNAME` file containing the bare domain into your `docs/` directory. Without the latter, every redeploy will wipe the CNAME GitHub stored on the `gh-pages` branch and your custom domain mapping will break until you set it again.
 
-```
+```text
 docs/
   CNAME             # contains exactly: docs.example.com
   index.md

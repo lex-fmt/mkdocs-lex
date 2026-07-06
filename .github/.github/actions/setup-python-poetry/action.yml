@@ -53,9 +53,9 @@ runs:
       uses: actions/cache@v3
       with:
         path: ${{ steps.venv-path.outputs.venv-path }}
-        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-venv-${{ inputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: ${{inputs.cache-key-prefix}}-${{runner.os}}-${{inputs.python-version}}-${{hashFiles('**/poetry.lock')}}
         restore-keys: |
-          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-venv-${{ inputs.python-version }}-
+          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-${{ inputs.python-version }}-
 
     - name: Install dependencies
       if: steps.cache-venv.outputs.cache-hit != 'true'

@@ -29,9 +29,9 @@ plugins:
 
 ### Configuration Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `download_if_missing` | `true` | When `lexd` isn't on `PATH`, fetch the latest matching binary from the `lex-fmt/lex` GitHub releases and cache it under `.mkdocs_lex_cache/`. Set to `false` to require a pre-installed `lexd` and error out if it's missing. |
+| Option                | Default | Description                                                                                                                                                                                                                   |
+| --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `download_if_missing` | `true`  | When `lexd` isn't on `PATH`, fetch the latest matching binary from the `lex-fmt/lex` GitHub releases and cache it under `.mkdocs_lex_cache/`. Set to `false` to require a pre-installed `lexd` and error out if it's missing. |
 
 ```yaml
 plugins:
@@ -42,7 +42,7 @@ plugins:
 
 ### Navigation Configuration
 
-Because the plugin tricks MkDocs into treating your `.lex` files as Markdown, your `mkdocs.yml` navigation must point to `.md` extensions, even though the files on disk are `.lex`. 
+Because the plugin tricks MkDocs into treating your `.lex` files as Markdown, your `mkdocs.yml` navigation must point to `.md` extensions, even though the files on disk are `.lex`.
 
 For example, if you have `docs/getting-started.lex` and `docs/index.lex`:
 
@@ -74,6 +74,7 @@ If you want to contribute or test this plugin locally:
 ## How it works
 
 MkDocs is fundamentally a Markdown engine. This plugin integrates cleanly by:
+
 1. Identifying `.lex` files in your `docs/` folder.
 2. Tricking MkDocs' internal engine into believing they are `.md` pages.
 3. Intercepting the file-read hook (`on_page_read_source`) to perform a just-in-time conversion of Lex to Markdown using the `lexd convert` capability.

@@ -1,19 +1,20 @@
-name: Merge mainline to main # all passing tests on mainline will be merged to main
+name: Merge mainline to main  # all passing tests on mainline will be merged to main
 
 on:
   workflow_run:
-    workflows: ["Run Tests"] # Trigger this workflow after the "Run Tests" workflow completes
+    workflows: ["Run Tests"]  # Trigger this workflow after the "Run Tests" workflow completes
     types:
-      - completed # Trigger on completion of the "Run Tests" workflow
+      - completed  # Trigger on completion of the "Run Tests" workflow
 
 jobs:
   merge:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/mainline' }} # Run this job only if the "Run Tests" workflow was successful and the branch is "mainline"
-    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    # Run this job only if the "Run Tests" workflow was successful and the branch is "mainline"
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/mainline' }}
+    runs-on: ubuntu-latest  # Use the latest Ubuntu runner
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2 # Check out the repository code
+        uses: actions/checkout@v2  # Check out the repository code
 
       - name: Configure Git
         run: |
@@ -27,4 +28,4 @@ jobs:
           git merge mainline  # Merge the mainline branch into the main branch
           git push origin main  # Push the merged changes to the main branch
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Use the GitHub token for authentication
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication

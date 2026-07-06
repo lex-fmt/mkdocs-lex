@@ -22,9 +22,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup Python environment
-        uses: ./.github/actions/setup-python-poetry # Reference your composite action
+        uses: ./.github/actions/setup-python-poetry  # Reference your composite action
         with:
-          python-version: "3.11" # Specify the Python version you want to use
+          python-version: "3.11"  # Specify the Python version you want to use
           cache-key-prefix: "test-env"
 
       - name: Determine version
@@ -72,7 +72,7 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{github.repository}}
           git add pyproject.toml
           git add sprinkles/src/locale
-          git commit -m "chore: Update version to ${{ steps.determine_version.outputs.release_version }} and update i18n files"
+          git commit -m "chore: bump version to ${{steps.determine_version.outputs.release_version}}, update i18n"
           git push origin HEAD:${{ github.ref }}
 
       - name: Build
