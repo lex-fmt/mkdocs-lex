@@ -60,12 +60,13 @@ Right:
 
 ## A Title
 
-#### 2. Respect line width, 88 as basis for everything, including python code
+### 2. Respect line width, 88 as basis for everything, including python code
 
 #### Code blocks
 
 You can't just embed python code, this is how to do it:
 
+```text
 def foo():
 """
 Some text
@@ -74,6 +75,7 @@ Some text
     # <- must leave empty line ->
         class Foo: # entire code block must be indented
             pass
+```
 
 #### . Nested lists require a line break between them
 
@@ -103,7 +105,7 @@ WRONG
 
 :ref:`about expanders<expanding>`. # no space betwen :ref: and `:ref:`about expanders <expanding>`. # space between expanders and <expanding>
 
-# Best practices for this codebase
+## Best practices for this codebase
 
 ## Domain Knowledge
 

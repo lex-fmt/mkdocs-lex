@@ -25,7 +25,7 @@ All three options below satisfy (1) and (2) out of the box. The recipes below al
 
 Every recipe pins to the same handful of files at the root of your repo:
 
-```
+```text
 mkdocs.yml
 docs/
   index.md
@@ -35,7 +35,7 @@ docs/requirements.txt   # pinned Python deps for the build
 
 A minimal `docs/requirements.txt` for a `mkdocs-lex` site:
 
-```
+```text
 mkdocs>=1.5
 mkdocs-lex-plugin
 mkdocs-material   # or your theme of choice; remove if using the default theme
