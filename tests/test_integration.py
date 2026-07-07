@@ -1,6 +1,6 @@
 import os
-import subprocess
 import shutil
+import subprocess
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
 SIMPLE_SITE_DIR = os.path.join(FIXTURES_DIR, "simple_site")
@@ -31,7 +31,7 @@ def test_mkdocs_lex_integration():
     assert os.path.exists(index_html_path), "index.html was not generated!"
 
     # 5. Assert the HTML contains expected content generated from the Lex file
-    with open(index_html_path, "r", encoding="utf-8") as f:
+    with open(index_html_path, encoding="utf-8") as f:
         html_content = f.read()
 
         # Check for the main title
