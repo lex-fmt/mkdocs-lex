@@ -1,17 +1,18 @@
-import os
-import sys
-import shutil
-import platform
-import subprocess
-import urllib.request
-import urllib.error
-import tarfile
-import zipfile
 import json
-from mkdocs.plugins import BasePlugin
-from mkdocs.structure.files import File
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tarfile
+import urllib.error
+import urllib.request
+import zipfile
+
 from mkdocs.config import config_options
 from mkdocs.exceptions import PluginError
+from mkdocs.plugins import BasePlugin
+from mkdocs.structure.files import File
 
 
 class LexPlugin(BasePlugin):
@@ -65,7 +66,7 @@ class LexPlugin(BasePlugin):
         except Exception as e:
             raise PluginError(
                 f"[mkdocs-lex] Failed to download lexd from {asset_url}: {e}"
-            )
+            ) from e
 
         # Extract archive
         try:
@@ -94,7 +95,7 @@ class LexPlugin(BasePlugin):
         except Exception as e:
             raise PluginError(
                 f"[mkdocs-lex] Failed to extract archive {archive_path}: {e}"
-            )
+            ) from e
 
         if not os.path.exists(local_bin_path):
             # Sometimes tar/zip extracts into a subfolder. Let's find it.
@@ -154,7 +155,7 @@ class LexPlugin(BasePlugin):
         except Exception as e:
             raise PluginError(
                 f"[mkdocs-lex] Failed to fetch latest release from GitHub API: {e}"
-            )
+            ) from e
 
         assets = data.get("assets", [])
         for asset in assets:
