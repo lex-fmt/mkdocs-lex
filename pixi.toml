@@ -43,3 +43,19 @@ lefthook = "2.1.*"
 # >>> shipit-managed environments (do not edit; regenerate via `shipit install`) >>>
 lint = ["lint"]
 # <<< shipit-managed environments <<<
+
+# Consumer-owned dependencies (outside the shipit-managed blocks above).
+# The default env self-installs THIS package editable so a fresh `git clone &&
+# pixi run test` is green with no external provisioning. The integration test
+# (tests/test_integration.py) shells out to `mkdocs build`, which resolves the
+# `lex` plugin via this package's `mkdocs.plugins` entry point — so the package
+# must be INSTALLED in the env that runs the suite, not merely present on disk.
+# CI provisions the same set by hand (`pip install -e ".[dev]" mkdocs`); pinning
+# it here makes the hermetic pixi env match. The `dev` extra carries pytest, and
+# the editable install pulls the `mkdocs>=1.0` runtime dep declared in
+# pyproject.toml. python is pinned to CI's 3.11 (.github/workflows/python-unittests.yml).
+[dependencies]
+python = "3.11.*"
+
+[pypi-dependencies]
+mkdocs-lex-plugin = { path = ".", editable = true, extras = ["dev"] }
