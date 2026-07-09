@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4  # Check out the repository code
+        with:
+          fetch-depth: 0  # Full history + all branches — the merge step below checks out main and merges mainline
+
 
       - name: Configure Git
         run: |
