@@ -40,6 +40,32 @@ lefthook = "2.1.*"
 # <<< shipit-managed lint deps <<<
 
 [environments]
+# The default env pulls in the consumer-owned `test` feature (deps below) so
+# `pixi run test` is hermetic. It is scoped to `test` — NOT the default feature —
+# so it does NOT leak into the shipit-managed `lint` env that the pre-commit/
+# pre-push hooks run (`pixi run -e lint lint`), keeping that hook env lean.
+default = ["test"]
 # >>> shipit-managed environments (do not edit; regenerate via `shipit install`) >>>
 lint = ["lint"]
 # <<< shipit-managed environments <<<
+
+# Consumer-owned dependencies (outside the shipit-managed blocks above).
+# Scoped to a dedicated `test` feature (pulled into the default env above), NOT
+# pixi's implicit default feature: top-level [dependencies]/[pypi-dependencies]
+# would apply to EVERY environment — including `lint` — bloating the hook env
+# with the editable project + mkdocs/pytest. Scoping keeps `lint` lean while the
+# default test run stays hermetic.
+#
+# The `test` feature self-installs THIS package editable: the integration test
+# (tests/test_integration.py) shells out to `mkdocs build`, which resolves the
+# `lex` plugin via this package's `mkdocs.plugins` entry point — so the package
+# must be INSTALLED in the env that runs the suite, not merely present on disk.
+# CI provisions the same set by hand (`pip install -e ".[dev]" mkdocs`); pinning
+# it here makes the hermetic pixi env match. The `dev` extra carries pytest, and
+# the editable install pulls the `mkdocs>=1.0` runtime dep declared in
+# pyproject.toml. python is pinned to CI's 3.11 (.github/workflows/python-unittests.yml).
+[feature.test.dependencies]
+python = "3.11.*"
+
+[feature.test.pypi-dependencies]
+mkdocs-lex-plugin = { path = ".", editable = true, extras = ["dev"] }
