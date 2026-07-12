@@ -15,6 +15,14 @@ lint = "./bin/shipit lint"
 logs = "./bin/shipit logs"
 provision-lexd = "./bin/shipit provision lexd"
 # <<< shipit-managed tasks <<<
+# The wf-checks TEST LANE's run (ADP02-WS03, #20): the integration test shells
+# out to `mkdocs build`, whose lex plugin invokes `lexd` from PATH — the legacy
+# python-unittests.yml installed the binary by hand, and the wf-checks block
+# provisions nothing outside pixi — so the lane task provisions it inline (the
+# lex#829 self-provisioning pattern), then runs the managed test verb.
+# `shipit provision lexd` is idempotent and lands lexd in this (default) env's
+# prefix; instant on a laptop where lexd is already provisioned.
+test-full = "./bin/shipit provision lexd && ./bin/shipit test"
 
 [feature.lint.dependencies]
 # >>> shipit-managed lint deps (do not edit; regenerate via `shipit install`) >>>
@@ -39,6 +47,31 @@ actionlint = "1.7.*"
 lefthook = "2.1.*"
 # <<< shipit-managed lint deps <<<
 
+[feature.lint.tasks]
+# The wf-checks LINT LANE's run (ADP02-WS03, #20), byte-modeled on shipit's own
+# and lex#829's: the lint toolchain (ruff/shfmt/prettier/markdownlint/
+# actionlint) lives in THIS feature's env, so the lane task must resolve into
+# the lint env — the managed bare `lint` task is a fixed plain string that runs
+# in the default env (where none of those tools exist on a hosted runner) and
+# cannot provision the lex leg's lexd. `provision lexd` inline lands lexd in
+# this env's prefix, idempotent. Defined ONLY in this feature, so it exists in
+# EXACTLY ONE env (lint) and bare `pixi run lint-full` resolves unambiguously —
+# the wf-checks matrix job's `pixi run --locked lint-full` and a laptop run are
+# identical.
+lint-full = { cmd = "./bin/shipit provision lexd && ./bin/shipit lint" }
+
+# uv backs the pinned bin/shipit launcher (ADR-0033: it provisions the repo's
+# pinned shipit via uv, PATH-independent). Both wf-checks lanes run
+# `pixi run --locked <task>` -> ./bin/shipit on a hosted runner where uv is not
+# otherwise present, so the launcher's one prerequisite must ride EVERY env the
+# lanes resolve into (default for test-full, lint for lint-full) — hence the
+# implicit default feature, the one deliberate exception to the "no top-level
+# [dependencies]" rule below (uv is a single static binary; the bloat concern
+# there is the editable project + mkdocs/pytest payload, not this).
+# (Flagged upstream: the block/managed set should own this — shipit#758.)
+[dependencies]
+uv = ">=0.5"
+
 [environments]
 # The default env pulls in the consumer-owned `test` feature (deps below) so
 # `pixi run test` is hermetic. It is scoped to `test` — NOT the default feature —
@@ -60,10 +93,12 @@ lint = ["lint"]
 # (tests/test_integration.py) shells out to `mkdocs build`, which resolves the
 # `lex` plugin via this package's `mkdocs.plugins` entry point — so the package
 # must be INSTALLED in the env that runs the suite, not merely present on disk.
-# CI provisions the same set by hand (`pip install -e ".[dev]" mkdocs`); pinning
-# it here makes the hermetic pixi env match. The `dev` extra carries pytest, and
-# the editable install pulls the `mkdocs>=1.0` runtime dep declared in
-# pyproject.toml. python is pinned to CI's 3.11 (.github/workflows/python-unittests.yml).
+# CI runs this exact env (the wf-checks test lane is `pixi run --locked
+# test-full`, #20 — the legacy python-unittests.yml that pip-installed the same
+# set by hand is retired), so the hermetic pixi env IS the CI env. The `dev`
+# extra carries pytest, and the editable install pulls the `mkdocs>=1.0`
+# runtime dep declared in pyproject.toml. python stays pinned to the 3.11 the
+# legacy CI ran.
 [feature.test.dependencies]
 python = "3.11.*"
 
