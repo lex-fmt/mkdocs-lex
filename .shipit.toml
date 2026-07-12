@@ -34,6 +34,30 @@ ignore = [
   "pnpm-lock.yaml",
 ]
 
+# [lanes] — the declared PR-time check units (ADP02-WS03, #20). The lane
+# planner (`shipit ci plan`) maps these + the CI event + a path-diff to the job
+# matrix the wf-checks workflow block runs (`pixi run --locked <run>` per job).
+# Modeled on the first-consumer cutover (lex-fmt/lex#829); both lanes' tasks
+# SELF-PROVISION, because on a hosted runner nothing outside pixi is
+# provisioned:
+#   - `lint-full` (NOT the managed bare `lint` task, which runs in the default
+#     env where no lint tool exists) resolves into the pixi lint env and
+#     provisions lexd inline — see its definition in pixi.toml
+#     [feature.lint.tasks].
+#   - `test-full` provisions lexd inline before `./bin/shipit test`: the
+#     integration test shells out to `mkdocs build`, whose lex plugin invokes
+#     lexd from PATH (the legacy python-unittests.yml installed it by hand);
+#     uv (for bin/shipit) rides pixi's [dependencies] in pixi.toml.
+[lanes.lint]
+run = "lint-full"
+required = true
+local = true
+
+[lanes.test]
+run = "test-full"
+required = true
+local = true
+
 [toolchains]
 "." = "python"
 
