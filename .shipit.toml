@@ -61,6 +61,35 @@ local = true
 [toolchains]
 "." = "python"
 
+# [artifacts] — this repo's declared release surface for the shipit release
+# pipeline (ADP02-WS09, the fleet's first consumer pypi live fire; declaration
+# style modeled on padz's WS06 / standout's WS08 maps). The legacy surface it
+# replaces is release.yml → arthur-debert/release python-pkg.yml@v1: a pure-
+# python wheel + sdist (v0.2.1 ships `mkdocs_lex_plugin-<v>-py3-none-any.whl`
+# + sdist), attached to the gh-release AND published to pypi.
+#   - `build = ["python"]` is the whole-leg shorthand naming the python leg
+#     the wheel composition reads (tools/registry.py PYTHON).
+#   - `bundle = { composition = "wheel" }` is the stage that STAGES the
+#     distributables: `uv build` emitting BOTH the wheel and the sdist into
+#     the bundle output tree (release/bundle.py WHEEL — the legacy
+#     python-pkg.yml build job: one build, consumed by multiple publish
+#     targets). Without it nothing is staged and publish has nothing to
+#     attach or upload. No main binary, so the scar-#2 integrity guard
+#     skips it (asserts_binary=False).
+#   - NO platforms: a pure-python wheel builds once, anywhere — preflight
+#     fans the build onto its single default platform.
+#   - endpoints: gh-release (asset attach, ambient GITHUB_TOKEN) + pypi (the
+#     twine block, TOL02-WS17 shipit#803; plan-required secret PYPI_TOKEN per
+#     secretreq.ENDPOINT_SECRETS — the repo secret the legacy caller already
+#     forwards). On a `-release-rc` version the central registry RC guard
+#     DROPS the pypi endpoint and PEP-440 normalization (shipit#808) maps the
+#     version to a valid pre-release form, so the rc proof rides gh-release
+#     alone. The legacy PYPI_PASSWORD secret is legacy-only and untouched.
+[artifacts.mkdocs-lex-plugin]
+build = ["python"]
+bundle = { composition = "wheel" }
+endpoints = ["gh-release", "pypi"]
+
 [shipit]
 version = "84818feb7b7c39ebdb5875028828db05b2d65f8a"
 
