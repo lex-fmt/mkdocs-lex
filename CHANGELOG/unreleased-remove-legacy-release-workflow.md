@@ -1,0 +1,1 @@
+- ci: the legacy release workflow (`release.yml`, the `arthur-debert/release/python-pkg.yml@v1` caller) is deleted — releases go exclusively through the shipit pipeline (`gh workflow run shipit-release.yml -f version=X.Y.Z -f stage=full`) (#26)

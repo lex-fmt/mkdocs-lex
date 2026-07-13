@@ -9,8 +9,9 @@ name: Checks
 # implementation a laptop runs. The block is consumed by the floating major
 # ref @v1, per the ADR-0010 publishing convention.
 #
-# Release workflows (release.yml, merge-mainline-to-main.yml) stay on their
-# legacy paths — out of this cutover's scope.
+# Releases are cut through the shipit release pipeline (shipit-release.yml,
+# #24); the legacy release.yml caller is retired (#26).
+# merge-mainline-to-main.yml stays on its legacy path — out of scope here.
 
 on:
   push:
