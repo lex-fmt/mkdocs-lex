@@ -1,0 +1,1 @@
+- ci: releases are now cut through the shipit release pipeline (`shipit-release.yml`, #24); this fragment also bootstraps the per-PR changelog convention (`CHANGELOG/unreleased-<slug>.md`)
