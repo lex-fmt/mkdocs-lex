@@ -1,0 +1,1 @@
+- ci: PR checks run through shipit's `wf-checks` block (`checks.yml`, #21) instead of the hand-rolled `python-unittests.yml`; both the lint and test lanes are hermetic pixi runs, so CI and a laptop execute the same command

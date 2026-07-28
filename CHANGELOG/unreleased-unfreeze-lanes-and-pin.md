@@ -1,0 +1,2 @@
+- fix: both required CI lanes were dead — they called `shipit provision lexd`, a verb that has been retired with no fallback, so every PR check failed with `No such command 'provision'`. `lexd` now arrives as an ordinary pinned conda dependency of the pixi environments each lane resolves into, and the lanes run the managed `lint` and `test` tasks directly
+- ci: the test suite no longer downloads `lexd` from GitHub at test time — the pinned `lexd` is in the test environment, so the integration build resolves it from `PATH` and the run is hermetic

@@ -1,0 +1,2 @@
+- fix: when the plugin downloads `lexd` for you, a failure to fetch, extract or query the GitHub release API now chains the underlying exception (`raise … from`), so the traceback shows the real network/archive error instead of only the `PluginError` wrapper
+- fix: the post-download cleanup of the temporary archive no longer swallows every exception — it catches `OSError` only, so a `Ctrl-C` during cleanup interrupts the build as it should
